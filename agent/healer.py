@@ -113,9 +113,9 @@ def detect_failed_pod():
         )
 
         return None
-    
 
-    def rollback_deployment(deployment_name):
+
+def rollback_deployment(deployment_name):
 
     print(
         f"\n⏪ Rolling back deployment: {deployment_name}"
