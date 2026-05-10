@@ -1,10 +1,13 @@
 import os
 import time
+
 from alerts import send_email_alert
+from analyzer import analyze_security_threat
+from healer import suggested_actions
 
 MONITORED_DIR = "../MERN-eCommerce"
 
-known_files = set()
+known_files = {}
 
 suspicious_extensions = [
     ".sh",
@@ -16,11 +19,10 @@ suspicious_extensions = [
 
 def scan_files():
 
-    current_files = set()
+    current_files = {}
 
     for root, dirs, files in os.walk(MONITORED_DIR):
 
-        # Skip node_modules
         if "node_modules" in root:
             continue
 
@@ -28,7 +30,11 @@ def scan_files():
 
             full_path = os.path.join(root, file)
 
-            current_files.add(full_path)
+            modified_time = os.path.getmtime(
+                full_path
+            )
+
+            current_files[full_path] = modified_time
 
             # Detect suspicious extensions
             for ext in suspicious_extensions:
@@ -41,10 +47,64 @@ def scan_files():
 
                     print(f"\n🚨 {message}")
 
-                    send_email_alert(
-                        "Security Threat Detected",
-                        message
-                    )
+                    # AI Threat Analysis
+                    try:
+
+                        ai_analysis = (
+                            analyze_security_threat(
+                                file,
+                                "Suspicious file detected during scan."
+                            )
+                        )
+
+                        print(
+                            "\n🤖 AI THREAT ANALYSIS:\n"
+                        )
+
+                        print(ai_analysis)
+
+                        print(
+                            "\n🛠️ Suggested Actions:\n"
+                        )
+
+                        actions = suggested_actions()
+
+                        for action in actions:
+                            print(action)
+
+                        actions_text = "\n".join(actions)
+
+                        full_alert = f"""
+
+🚨 SECURITY THREAT DETECTED
+
+Suspicious File:
+{file}
+
+AI Analysis:
+{ai_analysis}
+
+Suggested Actions:
+{actions_text}
+
+"""
+
+                        send_email_alert(
+                            "AI Security Threat Alert",
+                            full_alert
+                        )
+
+                    except Exception as e:
+
+                        print(
+                            "\n⚠️ AI Analysis Failed:",
+                            e
+                        )
+
+                        send_email_alert(
+                            "Security Threat Detected",
+                            message
+                        )
 
     return current_files
 
@@ -64,12 +124,10 @@ while True:
 
     current_files = scan_files()
 
-    # Detect unknown files
-    new_files = current_files - known_files
+    # Detect new files
+    for file in current_files:
 
-    if new_files:
-
-        for file in new_files:
+        if file not in known_files:
 
             message = (
                 f"Unknown file appeared: {file}"
@@ -81,5 +139,24 @@ while True:
                 "Unknown File Alert",
                 message
             )
+
+        else:
+
+            # Detect modified files
+            if (
+                current_files[file]
+                != known_files[file]
+            ):
+
+                message = (
+                    f"File modified unexpectedly: {file}"
+                )
+
+                print(f"\n⚠️ {message}")
+
+                send_email_alert(
+                    "File Modification Alert",
+                    message
+                )
 
     known_files = current_files

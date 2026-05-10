@@ -9,22 +9,33 @@ client = OpenAI(
 )
 
 
-def analyze_log(log_text):
+def analyze_security_threat(
+    file_name,
+    log_info
+):
 
     prompt = f"""
-    Analyze this Kubernetes/cloud log.
+    Analyze this suspicious activity
+    detected inside a Kubernetes
+    cloud application.
+
+    File:
+    {file_name}
+
+    Log Information:
+    {log_info}
 
     Explain:
-    1. What happened
-    2. Possible issue
-    3. Suggested fix
-
-    Log:
-    {log_text}
+    1. Possible threat
+    2. Severity
+    3. Possible impact
+    4. Recommended actions
     """
 
     response = client.chat.completions.create(
+
         model="gpt-4.1-mini",
+
         messages=[
             {
                 "role": "user",
@@ -33,18 +44,11 @@ def analyze_log(log_text):
         ]
     )
 
-    result = response.choices[0].message.content
+    result = (
+        response
+        .choices[0]
+        .message
+        .content
+    )
 
     return result
-
-
-sample_log = """
-Error: Pod restarting repeatedly.
-CPU usage above 90%.
-Possible memory leak.
-"""
-
-analysis = analyze_log(sample_log)
-
-print("\n===== AI ANALYSIS =====\n")
-print(analysis)
