@@ -19,30 +19,30 @@ def suggested_actions():
     return actions
 
 
-def restart_pod(pod_name):
+def restart_pod(deployment_name):
 
     print(
-        f"\n♻️ Restarting pod: {pod_name}"
+        f"\n♻️ Restarting deployment: {deployment_name}"
     )
 
     try:
 
-        delete_command = (
-            f"kubectl delete pod {pod_name}"
+        command = (
+            f"kubectl rollout restart deployment/{deployment_name}"
         )
 
         subprocess.run(
-            delete_command,
+            command,
             shell=True
         )
 
         print(
-            "\n✅ Pod restart triggered"
+            "\n✅ Deployment restart triggered"
         )
 
         send_email_alert(
-            "Pod Recovery Triggered",
-            f"Pod restarted automatically: {pod_name}"
+            "Self-Healing Triggered",
+            f"Deployment restarted automatically: {deployment_name}"
         )
 
     except Exception as e:
