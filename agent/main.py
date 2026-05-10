@@ -120,7 +120,7 @@ if security_result:
     )
 
 
-if "restarting" in deployment_result:
+if "restarting" in deployment_result.lower():
 
     send_email_alert(
         "Pod Crash Alert",
