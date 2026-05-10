@@ -2,7 +2,7 @@ import requests
 
 
 PROMETHEUS_URL = (
-    "http://localhost:9090"
+    "http://13.235.50.151:32250"
 )
 
 

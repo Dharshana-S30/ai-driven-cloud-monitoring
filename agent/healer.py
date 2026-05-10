@@ -1,7 +1,12 @@
 import subprocess
+import requests
 
 from alerts import send_email_alert
 
+
+# =========================================
+# SUGGESTED ACTIONS
+# =========================================
 
 def suggested_actions():
 
@@ -18,6 +23,10 @@ def suggested_actions():
 
     return actions
 
+
+# =========================================
+# RESTART DEPLOYMENT
+# =========================================
 
 def restart_pod(deployment_name):
 
@@ -53,6 +62,48 @@ def restart_pod(deployment_name):
         )
 
 
+# =========================================
+# ROLLBACK DEPLOYMENT
+# =========================================
+
+def rollback_deployment(deployment_name):
+
+    print(
+        f"\n⏪ Rolling back deployment: {deployment_name}"
+    )
+
+    try:
+
+        command = (
+            f"kubectl rollout undo deployment/{deployment_name}"
+        )
+
+        subprocess.run(
+            command,
+            shell=True
+        )
+
+        print(
+            "\n✅ Rollback completed"
+        )
+
+        send_email_alert(
+            "Deployment Rollback Triggered",
+            f"Deployment rolled back automatically: {deployment_name}"
+        )
+
+    except Exception as e:
+
+        print(
+            "\n❌ Rollback Failed:",
+            e
+        )
+
+
+# =========================================
+# COLLECT POD LOGS
+# =========================================
+
 def collect_pod_logs(pod_name):
 
     try:
@@ -75,6 +126,10 @@ def collect_pod_logs(pod_name):
             f"Log collection failed: {e}"
         )
 
+
+# =========================================
+# DETECT FAILED POD
+# =========================================
 
 def detect_failed_pod():
 
@@ -115,35 +170,25 @@ def detect_failed_pod():
         return None
 
 
-def rollback_deployment(deployment_name):
+# =========================================
+# APPLICATION HEALTH CHECK
+# =========================================
 
-    print(
-        f"\n⏪ Rolling back deployment: {deployment_name}"
-    )
+def check_application_health(url):
 
     try:
 
-        command = (
-            f"kubectl rollout undo deployment/{deployment_name}"
+        response = requests.get(
+            url,
+            timeout=5
         )
 
-        subprocess.run(
-            command,
-            shell=True
-        )
+        if response.status_code == 200:
 
-        print(
-            "\n✅ Rollback completed"
-        )
+            return True
 
-        send_email_alert(
-            "Deployment Rollback Triggered",
-            f"Deployment rolled back automatically: {deployment_name}"
-        )
+        return False
 
-    except Exception as e:
+    except Exception:
 
-        print(
-            "\n❌ Rollback Failed:",
-            e
-        )
+        return False

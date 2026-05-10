@@ -1,11 +1,16 @@
 import requests
 import time
 
-LOKI_URL = "http://13.235.50.151:31830/loki/api/v1/query_range"
+
+LOKI_URL = (
+    "http://13.235.50.151:31830/loki/api/v1/query_range"
+)
 
 
-def read_logs():
+def get_recent_logs():
+
     try:
+
         query = '{namespace="default"}'
 
         response = requests.get(
@@ -18,13 +23,45 @@ def read_logs():
 
         data = response.json()
 
-        print("\n===== LOKI LOGS =====")
-        print(data)
+        logs = []
+
+        results = data["data"]["result"]
+
+
+        for stream in results:
+
+            values = stream["values"]
+
+            for value in values:
+
+                log_line = value[1]
+
+                logs.append(log_line)
+
+
+        return logs
 
     except Exception as e:
-        print("Loki Error:", e)
+
+        return [
+            f"Loki Error: {e}"
+        ]
 
 
-while True:
-    read_logs()
-    time.sleep(60)
+# =========================================
+# TESTING MODE
+# =========================================
+
+if __name__ == "__main__":
+
+    while True:
+
+        print("\n===== LOKI LOGS =====")
+
+        logs = get_recent_logs()
+
+        for log in logs:
+
+            print(log)
+
+        time.sleep(60)
