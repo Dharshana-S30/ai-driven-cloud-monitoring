@@ -54,7 +54,6 @@ const HomePage = () => {
           {!search && <ProductCarousel />}
           <Meta />
           <h1>LATEST PRODUCTS</h1>
-          <h1>CI/CD TEST  </h1>
           <Row>
             {data.products.map(product => (
               <Col key={product._id} sm={12} md={6} lg={4} xl={3}>
