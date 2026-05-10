@@ -113,3 +113,37 @@ def detect_failed_pod():
         )
 
         return None
+    
+
+    def rollback_deployment(deployment_name):
+
+    print(
+        f"\n⏪ Rolling back deployment: {deployment_name}"
+    )
+
+    try:
+
+        command = (
+            f"kubectl rollout undo deployment/{deployment_name}"
+        )
+
+        subprocess.run(
+            command,
+            shell=True
+        )
+
+        print(
+            "\n✅ Rollback completed"
+        )
+
+        send_email_alert(
+            "Deployment Rollback Triggered",
+            f"Deployment rolled back automatically: {deployment_name}"
+        )
+
+    except Exception as e:
+
+        print(
+            "\n❌ Rollback Failed:",
+            e
+        )

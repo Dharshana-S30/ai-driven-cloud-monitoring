@@ -9,6 +9,13 @@ from traffic_manager import (
     monitor_resources
 )
 
+from healer import (
+    detect_failed_pod,
+    collect_pod_logs,
+    restart_pod,
+    rollback_deployment
+)
+
 
 # TEST VALUES
 
@@ -107,4 +114,24 @@ if memory_usage > 85:
     send_email_alert(
         "Memory Overload Alert",
         f"Memory usage critically high: {memory_usage}%"
+    )
+
+    print("\n===== DEPLOYMENT HEALTH CHECK =====")
+
+
+deployment_unhealthy = True
+
+
+if deployment_unhealthy:
+
+    print(
+        "\n🚨 Deployment unhealthy detected"
+    )
+
+    rollback_deployment("mern-app")
+
+else:
+
+    print(
+        "\n✅ Deployment healthy"
     )
