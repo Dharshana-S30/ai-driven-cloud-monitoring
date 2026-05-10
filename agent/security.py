@@ -5,6 +5,7 @@ from alerts import send_email_alert
 from analyzer import analyze_security_threat
 from healer import suggested_actions
 
+
 MONITORED_DIR = "../MERN-eCommerce"
 
 known_files = {}
@@ -109,54 +110,79 @@ Suggested Actions:
     return current_files
 
 
-print("\n🔍 Initial File Scan Running...")
+def detect_suspicious_activity(
+    cpu,
+    memory
+):
 
-known_files = scan_files()
+    if cpu > 80:
 
-print("\n✅ Known Files Stored")
+        return (
+            "High CPU usage detected. "
+            "Possible traffic spike."
+        )
+
+    if memory > 85:
+
+        return (
+            "High memory usage detected. "
+            "Possible memory leak."
+        )
+
+    return None
 
 
-while True:
+def start_security_monitor():
 
-    time.sleep(30)
+    global known_files
 
-    print("\n🔄 Rescanning Files...")
+    print("\n🔍 Initial File Scan Running...")
 
-    current_files = scan_files()
+    known_files = scan_files()
 
-    # Detect new files
-    for file in current_files:
+    print("\n✅ Known Files Stored")
 
-        if file not in known_files:
+    while True:
 
-            message = (
-                f"Unknown file appeared: {file}"
-            )
+        time.sleep(30)
 
-            print(f"\n🚨 {message}")
+        print("\n🔄 Rescanning Files...")
 
-            send_email_alert(
-                "Unknown File Alert",
-                message
-            )
+        current_files = scan_files()
 
-        else:
+        # Detect new files
+        for file in current_files:
 
-            # Detect modified files
-            if (
-                current_files[file]
-                != known_files[file]
-            ):
+            if file not in known_files:
 
                 message = (
-                    f"File modified unexpectedly: {file}"
+                    f"Unknown file appeared: {file}"
                 )
 
-                print(f"\n⚠️ {message}")
+                print(f"\n🚨 {message}")
 
                 send_email_alert(
-                    "File Modification Alert",
+                    "Unknown File Alert",
                     message
                 )
 
-    known_files = current_files
+            else:
+
+                # Detect modified files
+                if (
+                    current_files[file]
+                    != known_files[file]
+                ):
+
+                    message = (
+                        f"File modified unexpectedly: {file}"
+                    )
+
+                    print(f"\n⚠️ {message}")
+
+                    send_email_alert(
+                        "File Modification Alert",
+                        message
+                    )
+
+        known_files = current_files
