@@ -1,7 +1,13 @@
 import os
+import subprocess
+import requests
 
 from alerts import send_email_alert
 
+
+# =========================================
+# PRE DEPLOYMENT VALIDATION
+# =========================================
 
 def validate_deployment():
 
@@ -11,7 +17,7 @@ def validate_deployment():
 
     required_files = [
 
-        "../Dockerfile",
+        "../MERN-eCommerce/Dockerfile",
 
         "../k8s/deployment.yaml",
 
@@ -55,13 +61,12 @@ Deployment stopped.
         "\n✅ Deployment validation successful"
     )
 
-    send_email_alert(
-        "Deployment Validation Success",
-        "All required deployment files exist."
-    )
-
     return True
 
+
+# =========================================
+# POD HEALTH CHECK
+# =========================================
 
 def check_pod_health(pod_restarts):
 
@@ -71,4 +76,77 @@ def check_pod_health(pod_restarts):
             "Pod restarting repeatedly."
         )
 
-    return "Pod healthy."
+    return (
+        "Pods healthy."
+    )
+
+
+# =========================================
+# POST DEPLOYMENT VERIFICATION
+# =========================================
+
+def verify_deployment(app_url):
+
+    print(
+        "\n===== POST DEPLOYMENT VERIFICATION ====="
+    )
+
+    try:
+
+        # ====================================
+        # CHECK POD STATUS
+        # ====================================
+
+        command = (
+            "kubectl get pods --no-headers"
+        )
+
+        output = subprocess.check_output(
+            command,
+            shell=True,
+            text=True
+        )
+
+        if (
+            "CrashLoopBackOff" in output
+            or "Error" in output
+        ):
+
+            return (
+                False,
+                "Pod failure detected."
+            )
+
+
+        # ====================================
+        # CHECK APPLICATION HEALTH
+        # ====================================
+
+        response = requests.get(
+            app_url,
+            timeout=5
+        )
+
+        if response.status_code != 200:
+
+            return (
+                False,
+                "Application endpoint unhealthy."
+            )
+
+
+        # ====================================
+        # SUCCESS
+        # ====================================
+
+        return (
+            True,
+            "Deployment verification successful."
+        )
+
+    except Exception as e:
+
+        return (
+            False,
+            f"Verification failed: {e}"
+        )
