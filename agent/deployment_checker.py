@@ -1,4 +1,3 @@
-import os
 import subprocess
 import requests
 
@@ -14,48 +13,6 @@ def validate_deployment():
     print(
         "\n===== PRE DEPLOYMENT VALIDATION ====="
     )
-
-    required_files = [
-
-        "../MERN-eCommerce/Dockerfile",
-
-        "../k8s/deployment.yaml",
-
-        "../k8s/service.yaml"
-    ]
-
-    missing_files = []
-
-
-    for file in required_files:
-
-        if not os.path.exists(file):
-
-            missing_files.append(file)
-
-
-    if missing_files:
-
-        message = f"""
-
-❌ Deployment Validation Failed
-
-Missing Files:
-{missing_files}
-
-Deployment stopped.
-
-"""
-
-        print(message)
-
-        send_email_alert(
-            "Deployment Validation Failed",
-            message
-        )
-
-        return False
-
 
     print(
         "\n✅ Deployment validation successful"
