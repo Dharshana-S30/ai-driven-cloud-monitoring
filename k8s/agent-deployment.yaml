@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: ai-cloud-agent
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: ai-cloud-agent
+
+  template:
+
+    metadata:
+      labels:
+        app: ai-cloud-agent
+
+    spec:
+
+      serviceAccountName: ai-agent-sa
+
+      containers:
+
+      - name: ai-cloud-agent
+
+        image: dharshana20/ai-cloud-agent:latest
+
+        imagePullPolicy: Always
