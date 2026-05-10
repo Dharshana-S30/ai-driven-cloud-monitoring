@@ -61,3 +61,14 @@ Deployment stopped.
     )
 
     return True
+
+
+def check_pod_health(pod_restarts):
+
+    if pod_restarts > 3:
+
+        return (
+            "Pod restarting repeatedly."
+        )
+
+    return "Pod healthy."
