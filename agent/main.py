@@ -2,7 +2,10 @@ from alerts import send_email_alert
 
 from security import detect_suspicious_activity
 
-from deployment_checker import check_pod_health
+from deployment_checker import (
+    check_pod_health,
+    validate_deployment
+)
 
 from traffic_manager import (
     analyze_traffic,
@@ -13,11 +16,29 @@ from healer import (
     detect_failed_pod,
     collect_pod_logs,
     restart_pod,
-    rollback_deployment
+    rollback_deployment,
+    check_application_health
 )
 
 
+# =========================================
+# PRE DEPLOYMENT VALIDATION
+# =========================================
+
+deployment_ready = validate_deployment()
+
+if not deployment_ready:
+
+    print(
+        "\n❌ Deployment blocked"
+    )
+
+    exit()
+
+
+# =========================================
 # TEST VALUES
+# =========================================
 
 cpu_usage = 92
 memory_usage = 88
@@ -25,7 +46,9 @@ pod_restarts = 5
 traffic_rate = 1200
 
 
+# =========================================
 # SECURITY ANALYSIS
+# =========================================
 
 security_result = detect_suspicious_activity(
     cpu_usage,
@@ -33,21 +56,27 @@ security_result = detect_suspicious_activity(
 )
 
 
+# =========================================
 # POD HEALTH ANALYSIS
+# =========================================
 
 deployment_result = check_pod_health(
     pod_restarts
 )
 
 
+# =========================================
 # TRAFFIC ANALYSIS
+# =========================================
 
 traffic_result = analyze_traffic(
     traffic_rate
 )
 
 
+# =========================================
 # RESOURCE ANALYSIS
+# =========================================
 
 resource_result = monitor_resources(
     cpu_usage=92,
@@ -55,6 +84,10 @@ resource_result = monitor_resources(
     pod_name="mern-app"
 )
 
+
+# =========================================
+# MAIN OUTPUT
+# =========================================
 
 print("\n===== AI CLOUD AGENT =====\n")
 
@@ -75,7 +108,9 @@ print("\nResource Analysis:")
 print(resource_result)
 
 
+# =========================================
 # EMAIL ALERTS
+# =========================================
 
 if security_result:
 
@@ -116,7 +151,12 @@ if memory_usage > 85:
         f"Memory usage critically high: {memory_usage}%"
     )
 
-    print("\n===== DEPLOYMENT HEALTH CHECK =====")
+
+# =========================================
+# DEPLOYMENT HEALTH CHECK
+# =========================================
+
+print("\n===== DEPLOYMENT HEALTH CHECK =====")
 
 
 deployment_unhealthy = True
@@ -134,4 +174,74 @@ else:
 
     print(
         "\n✅ Deployment healthy"
+    )
+
+
+# =========================================
+# APPLICATION HEALTH CHECK
+# =========================================
+
+print("\n===== APPLICATION HEALTH CHECK =====")
+
+
+app_url = (
+    "http://13.235.50.151/:30007"
+)
+
+
+app_healthy = check_application_health(
+    app_url
+)
+
+
+if not app_healthy:
+
+    print(
+        "\n🚨 Application Down Detected"
+    )
+
+    send_email_alert(
+        "Application Recovery Alert",
+        "Application unavailable. Restarting deployment."
+    )
+
+    restart_pod("mern-app")
+
+else:
+
+    print(
+        "\n✅ Application Healthy"
+    )
+
+
+# =========================================
+# FAILED POD DETECTION
+# =========================================
+
+print("\n===== SELF HEALING CHECK =====")
+
+
+failed_pod = detect_failed_pod()
+
+
+if failed_pod:
+
+    print(
+        f"\n🚨 Failed Pod Detected: {failed_pod}"
+    )
+
+    logs = collect_pod_logs(
+        failed_pod
+    )
+
+    print("\n📄 POD LOGS:\n")
+
+    print(logs[:1000])
+
+    restart_pod("mern-app")
+
+else:
+
+    print(
+        "\n✅ No failed pods detected"
     )
