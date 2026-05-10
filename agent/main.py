@@ -185,7 +185,7 @@ print("\n===== APPLICATION HEALTH CHECK =====")
 
 
 app_url = (
-    "http://13.235.50.151/:30007"
+    "http://13.235.50.151:30007"
 )
 
 
