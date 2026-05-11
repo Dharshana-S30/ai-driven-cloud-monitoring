@@ -1,4 +1,4 @@
-import os
+import subprocess
 import time
 
 from alerts import send_email_alert
@@ -6,78 +6,144 @@ from analyzer import analyze_security_threat
 from healer import suggested_actions
 
 
-MONITORED_DIR = "../MERN-eCommerce"
-
-known_files = {}
+# =========================================
+# SUSPICIOUS FILE TYPES
+# =========================================
 
 suspicious_extensions = [
+
     ".sh",
+
     ".exe",
+
     ".bat",
+
     ".ps1"
 ]
 
 
+# =========================================
+# DETECT SUSPICIOUS FILES INSIDE MERN POD
+# =========================================
+
 def scan_files():
 
-    current_files = {}
+    try:
 
-    for root, dirs, files in os.walk(MONITORED_DIR):
+        # ====================================
+        # GET MERN POD NAME
+        # ====================================
 
-        if "node_modules" in root:
-            continue
+        command = (
+            "kubectl get pods --no-headers"
+        )
 
-        for file in files:
+        output = subprocess.check_output(
+            command,
+            shell=True,
+            text=True
+        )
 
-            full_path = os.path.join(root, file)
+        lines = output.splitlines()
 
-            modified_time = os.path.getmtime(
-                full_path
+        mern_pod = None
+
+        for line in lines:
+
+            if "mern-app" in line:
+
+                mern_pod = line.split()[0]
+
+                break
+
+
+        if not mern_pod:
+
+            return (
+                "MERN pod not found."
             )
 
-            current_files[full_path] = modified_time
 
-            # Detect suspicious extensions
+        # ====================================
+        # READ FILES INSIDE MERN CONTAINER
+        # ====================================
+
+        command = (
+            f"kubectl exec {mern_pod} -- ls /app"
+        )
+
+        files_output = subprocess.check_output(
+            command,
+            shell=True,
+            text=True
+        )
+
+
+        detected_files = []
+
+
+        # ====================================
+        # CHECK SUSPICIOUS FILES
+        # ====================================
+
+        for line in files_output.splitlines():
+
             for ext in suspicious_extensions:
 
-                if file.endswith(ext):
+                if line.endswith(ext):
 
-                    message = (
-                        f"Suspicious file detected: {file}"
+                    detected_files.append(line)
+
+
+        # ====================================
+        # ALERT IF FOUND
+        # ====================================
+
+        if detected_files:
+
+            for file in detected_files:
+
+                print(
+                    f"\n🚨 Suspicious file detected: {file}"
+                )
+
+                # ================================
+                # AI ANALYSIS
+                # ================================
+
+                ai_analysis = (
+                    analyze_security_threat(
+                        file,
+                        "Suspicious file detected inside MERN application."
                     )
+                )
 
-                    print(f"\n🚨 {message}")
+                print(
+                    "\n🤖 AI THREAT ANALYSIS:\n"
+                )
 
-                    # AI Threat Analysis
-                    try:
+                print(ai_analysis)
 
-                        ai_analysis = (
-                            analyze_security_threat(
-                                file,
-                                "Suspicious file detected during scan."
-                            )
-                        )
+                actions = suggested_actions()
 
-                        print(
-                            "\n🤖 AI THREAT ANALYSIS:\n"
-                        )
+                print(
+                    "\n🛠️ Suggested Actions:\n"
+                )
 
-                        print(ai_analysis)
+                for action in actions:
 
-                        print(
-                            "\n🛠️ Suggested Actions:\n"
-                        )
+                    print(action)
 
-                        actions = suggested_actions()
 
-                        for action in actions:
-                            print(action)
+                actions_text = "\n".join(actions)
 
-                        actions_text = "\n".join(actions)
 
-                        full_alert = f"""
+                full_alert = f"""
 
 🚨 SECURITY THREAT DETECTED
+
+Pod:
+{mern_pod}
 
 Suspicious File:
 {file}
@@ -90,25 +156,32 @@ Suggested Actions:
 
 """
 
-                        send_email_alert(
-                            "AI Security Threat Alert",
-                            full_alert
-                        )
 
-                    except Exception as e:
+                send_email_alert(
+                    "AI Security Threat Alert",
+                    full_alert
+                )
 
-                        print(
-                            "\n⚠️ AI Analysis Failed:",
-                            e
-                        )
+            return (
+                "Suspicious files detected."
+            )
 
-                        send_email_alert(
-                            "Security Threat Detected",
-                            message
-                        )
 
-    return current_files
+        return (
+            "No suspicious files detected."
+        )
 
+
+    except Exception as e:
+
+        return (
+            f"Security Scan Failed: {e}"
+        )
+
+
+# =========================================
+# SECURITY ANALYSIS
+# =========================================
 
 def detect_suspicious_activity(
     cpu,
@@ -132,57 +205,24 @@ def detect_suspicious_activity(
     return None
 
 
+# =========================================
+# CONTINUOUS SECURITY MONITOR
+# =========================================
+
 def start_security_monitor():
 
-    global known_files
-
-    print("\n🔍 Initial File Scan Running...")
-
-    known_files = scan_files()
-
-    print("\n✅ Known Files Stored")
+    print(
+        "\n🔍 Security Monitoring Started..."
+    )
 
     while True:
 
+        print(
+            "\n🔄 Scanning MERN Application Files..."
+        )
+
+        result = scan_files()
+
+        print(result)
+
         time.sleep(30)
-
-        print("\n🔄 Rescanning Files...")
-
-        current_files = scan_files()
-
-        # Detect new files
-        for file in current_files:
-
-            if file not in known_files:
-
-                message = (
-                    f"Unknown file appeared: {file}"
-                )
-
-                print(f"\n🚨 {message}")
-
-                send_email_alert(
-                    "Unknown File Alert",
-                    message
-                )
-
-            else:
-
-                # Detect modified files
-                if (
-                    current_files[file]
-                    != known_files[file]
-                ):
-
-                    message = (
-                        f"File modified unexpectedly: {file}"
-                    )
-
-                    print(f"\n⚠️ {message}")
-
-                    send_email_alert(
-                        "File Modification Alert",
-                        message
-                    )
-
-        known_files = current_files
