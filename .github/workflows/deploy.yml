@@ -10,10 +10,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    # ================================
+    # PRE-DEPLOYMENT AGENT
+    # ================================
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install Agent Dependencies
+      run: |
+        pip install requests boto3 gtts
+
+    - name: Run Pre-Deployment Agent
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+      run: |
+        python pre_deploy_agent.py
+
+    # ================================
+    # EXISTING PIPELINE CONTINUES
+    # IF PRE-DEPLOYMENT PASSES
+    # ================================
     - name: Login to DockerHub
       uses: docker/login-action@v3
       with:
