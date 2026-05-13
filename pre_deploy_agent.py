@@ -136,11 +136,12 @@ def analyze_with_groq(log):
                 Metrics:
                 {log}
 
+                
                 Rules:
-                - If CPU > 80% → CRITICAL
-                - If instance not running → CRITICAL
-                - If MERN app DOWN → CRITICAL
-                - If all OK → NORMAL
+                   - If CPU > 1% → CRITICAL
+                   - If instance not running → CRITICAL
+                   - If MERN app DOWN → CRITICAL
+                   - If all OK → NORMAL
 
                 Keep response short and clear.
                 """
