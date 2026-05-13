@@ -13,7 +13,9 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
-EC2_INSTANCE_ID = os.environ.get("EC2_INSTANCE_ID", "").strip()# ================================
+EC2_INSTANCE_ID = os.environ.get("EC2_INSTANCE_ID", "").strip()
+
+# ================================
 # AWS CLOUDWATCH CONNECTION
 # ================================
 cloudwatch = boto3.client(
@@ -101,12 +103,23 @@ def get_aws_metrics():
     """
 
     print(real_log)
+
+    # ================================
+    # DEMO MODE — FORCE CRITICAL
+    # Remove these 4 lines after demo
+    # ================================
+    print("🔴 DEMO MODE: Forcing critical alert!")
+    cpu = 99
+    instance_status = "impaired"
+    app_status = "DOWN"
+    # ================================
+
     return real_log, cpu, instance_status, app_status
 
 # ================================
 # ANALYZE WITH GROQ
 # ================================
-def analyze_with_groq(log):
+def analyze_with_groq(log, cpu, instance_status, app_status):
     print("🤖 Groq analyzing pre-deployment status...")
 
     headers = {
@@ -119,9 +132,9 @@ def analyze_with_groq(log):
         "messages": [
             {
                 "role": "system",
-                "content": """You are a pre-deployment cloud monitoring 
-                AI agent for a MERN application running on AWS EC2 
-                with Kubernetes. Analyze the pre-deployment metrics 
+                "content": """You are a pre-deployment cloud monitoring
+                AI agent for a MERN application running on AWS EC2
+                with Kubernetes. Analyze the pre-deployment metrics
                 and decide if deployment should proceed or stop."""
             },
             {
@@ -133,15 +146,16 @@ def analyze_with_groq(log):
                 3. Reason: Why you decided that
                 4. Action: What should be done
 
-                Metrics:
-                {log}
+                Current Metrics:
+                CPU Usage: {cpu}%
+                Instance Status: {instance_status}
+                MERN App Status: {app_status}
 
-                
-                Rules:
-                   - If CPU > 1% → CRITICAL
-                   - If instance not running → CRITICAL
-                   - If MERN app DOWN → CRITICAL
-                   - If all OK → NORMAL
+                Rules — strictly follow these:
+                - If CPU >= 90% → CRITICAL, Safe to Deploy: NO
+                - If instance_status is impaired → CRITICAL, Safe to Deploy: NO
+                - If app_status is DOWN → CRITICAL, Safe to Deploy: NO
+                - If all normal → NORMAL, Safe to Deploy: YES
 
                 Keep response short and clear.
                 """
@@ -191,7 +205,7 @@ def send_voice_alert(message):
     print("✅ Voice alert sent!")
 
 # ================================
-# ESCALATION TIMER
+# CHECK USER RESPONDED
 # ================================
 def check_user_responded():
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
@@ -202,20 +216,27 @@ def check_user_responded():
         if "message" in last_message:
             text = last_message["message"].get("text", "")
             if text.upper() in ["OK", "ACKNOWLEDGED", "ACK"]:
+                print("✅ User responded! No escalation.")
                 return True
     return False
 
+# ================================
+# ESCALATION TIMER
+# ================================
 def escalation_timer():
-    print("⏳ Waiting 10 minutes for response...")
-    time.sleep(600)
+    print("⏳ Waiting 60 seconds for response...")
+    print("→ Reply OK in Telegram to stop escalation")
+    time.sleep(60)
     if not check_user_responded():
         print("⚠️ No response! Escalating...")
         send_text_alert(
-            "🔺 ESCALATION ALERT 🔺\n"
+            "🔺 ESCALATION ALERT 🔺\n\n"
             "No response received!\n"
-            "Deployment is BLOCKED!\n"
-            "Immediate attention needed!"
+            "Deployment still BLOCKED!\n"
+            "Immediate attention needed!\n\n"
+            "Reply OK when resolved."
         )
+        print("✅ Escalation alert sent!")
 
 # ================================
 # MAIN PRE-DEPLOYMENT CHECK
@@ -229,13 +250,17 @@ def run_pre_deployment_check():
     print(f"Region: ap-south-1")
     print("="*50)
 
-    # Step 1 Get real metrics
+    # Step 1 — Get real metrics
     log, cpu, instance_status, app_status = get_aws_metrics()
 
-    # Step 2 Analyze with Groq
-    analysis = analyze_with_groq(log)
+    # Step 2 — Analyze with Groq
+    analysis = analyze_with_groq(
+        log, cpu,
+        instance_status,
+        app_status
+    )
 
-    # Step 3 Check result
+    # Step 3 — Check result
     if "CRITICAL" in analysis.upper():
         print("\n🚨 CRITICAL ISSUE FOUND!")
         print("🚫 DEPLOYMENT BLOCKED!")
@@ -243,9 +268,9 @@ def run_pre_deployment_check():
         # Send text alert first
         send_text_alert(
             f"🚨 PRE-DEPLOYMENT ALERT 🚨\n\n"
-            f"Deployment BLOCKED!\n"
-            f"EC2: {instance_status}\n"
-            f"CPU: {cpu}%\n"
+            f"Deployment BLOCKED!\n\n"
+            f"EC2 Status: {instance_status}\n"
+            f"CPU Usage: {cpu}%\n"
             f"MERN App: {app_status}\n\n"
             f"Check voice message for details!\n"
             f"Reply OK when resolved."
@@ -260,17 +285,18 @@ def run_pre_deployment_check():
             f"Your EC2 instance status is {instance_status}. "
             f"CPU usage is at {cpu} percent. "
             f"MERN application is {app_status}. "
-            f"Please resolve these issues before deploying. "
+            f"Please resolve these issues "
+            f"before deploying. "
             f"Reply OK on Telegram when resolved. "
             f"This is your Cloud Alert System."
         )
         send_voice_alert(voice_message)
 
-        # Start escalation
+        # Start escalation timer
         escalation_timer()
 
-        # Exit with error to stop deployment
-        print("\n🚫 Deployment stopped by pre-deployment agent!")
+        # Stop deployment
+        print("\n🚫 Deployment stopped!")
         exit(1)
 
     else:
@@ -279,13 +305,13 @@ def run_pre_deployment_check():
 
         send_text_alert(
             f"✅ PRE-DEPLOYMENT CHECK PASSED\n\n"
-            f"EC2: {instance_status}\n"
-            f"CPU: {cpu}%\n"
+            f"EC2 Status: {instance_status}\n"
+            f"CPU Usage: {cpu}%\n"
             f"MERN App: {app_status}\n\n"
             f"Deployment proceeding automatically!"
         )
 
-        print("\n✅ Pre-deployment agent completed!")
+        print("✅ Pre-deployment agent completed!")
         exit(0)
 
 # ================================
