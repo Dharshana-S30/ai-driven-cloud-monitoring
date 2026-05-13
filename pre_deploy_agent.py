@@ -8,14 +8,12 @@ from datetime import datetime, timedelta
 # ================================
 # KEYS FROM ENVIRONMENT
 # ================================
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
-AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
-EC2_INSTANCE_ID = os.environ.get("EC2_INSTANCE_ID")
-
-# ================================
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "").strip()
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "").strip()
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
+EC2_INSTANCE_ID = os.environ.get("EC2_INSTANCE_ID", "").strip()# ================================
 # AWS CLOUDWATCH CONNECTION
 # ================================
 cloudwatch = boto3.client(
